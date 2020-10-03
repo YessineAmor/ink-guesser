@@ -4,14 +4,14 @@ use ink_lang as ink;
 
 #[ink::contract()]
 mod guesserv3 {
+    use ink_prelude::string;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
         traits::{PackedLayout, SpreadLayout},
         Vec as StorageVec,
     };
-    use ink_prelude::string;
     #[derive(
-        Debug, Copy, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout,
+        Debug, Copy, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout,Default
     )]
     #[cfg_attr(
         feature = "std",
@@ -92,6 +92,14 @@ mod guesserv3 {
         pub fn new() -> Self {
             Default::default()
         }
+        #[ink(message)]
+        pub fn get_challenge(&self, challenge_hash: Hash) -> Option<Challenge> {
+            match self.challenges.get(&challenge_hash){
+                Some(challenge) => Some(*challenge),
+                None => None
+            }
+            
+        }
     }
 
     /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
@@ -101,18 +109,45 @@ mod guesserv3 {
     mod tests {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
-
+        use ink_env::{account_id, call, test, DefaultEnvTypes};
+        use ink_lang as ink;
+        fn set_sender(sender: AccountId) {
+            // Get contract address.
+            let callee = account_id::<DefaultEnvTypes>().unwrap_or([0x0; 32].into());
+            test::push_execution_context::<EnvTypes>(
+                sender,
+                callee,
+                1000000,
+                1000000,
+                test::CallData::new(call::Selector::new([0x00; 4])), // dummy
+            );
+        }
         /// We test if the default constructor does its job.
-        #[test]
+        #[ink::test]
         fn default_works() {
-            let guesserv3 = Guesserv3::default();
+            let accounts =
+                test::default_accounts::<DefaultEnvTypes>().expect("Cannot get accounts");
+            set_sender(accounts.alice);
+            let guesserv3 = Guesserv3::new();
             assert_eq!(false, false);
         }
 
-        /// We test a simple use case of our contract.
-        #[test]
-        fn it_works() {
-            assert_eq!(false, false);
+        /// Testing the challenge creation
+        #[ink::test]
+        fn challenge_creation_works() {
+            let accounts =
+                test::default_accounts::<DefaultEnvTypes>().expect("Cannot get accounts");
+            set_sender(accounts.alice);
+            let challenge_answer_hash: Hash = ink_env::Hash::from([0x99; 32]);
+            let challenge_hash : Hash = challenge_answer_hash;
+            let mut contract = Guesserv3::new();
+            let new_challenge_result = contract.new_challenge(challenge_answer_hash, 100, challenge_answer_hash);
+            // Assert that challenge creation has been successful.
+            assert_eq!(new_challenge_result, true);
+            // Assert that an event gets emmited on challenge creation
+            assert_eq!(ink_env::test::recorded_events().count(), 1);
+
         }
+        
     }
 }
