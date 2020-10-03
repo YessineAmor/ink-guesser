@@ -148,6 +148,32 @@ mod guesserv3 {
             assert_eq!(ink_env::test::recorded_events().count(), 1);
 
         }
-        
+        /// Testing the challenge creation
+        #[ink::test]
+        fn get_challenge_works() {
+            let accounts =
+                test::default_accounts::<DefaultEnvTypes>().expect("Cannot get accounts");
+            set_sender(accounts.alice);
+            let challenge_hash: Hash = ink_env::Hash::from([0x99; 32]);
+            let mut contract = Guesserv3::new();
+
+            let new_challenge_result = contract.new_challenge(challenge_hash, 100, challenge_hash);
+            // Assert that challenge creation has been successful.
+            assert_eq!(new_challenge_result, true);
+            // Assert that an event gets emmited on challenge creation
+            assert_eq!(ink_env::test::recorded_events().count(), 1);
+
+            let get_challenge_result = contract.get_challenge(challenge_hash);
+            println!("Challenge found {:?}",get_challenge_result);
+            let challenge_to_find = Challenge{
+                challenge_hash,
+                challenge_answer: challenge_hash,
+                challenge_prize: 100,
+                challenge_solved: true
+            };
+            // Assert that challenge creation has been successful.
+            assert_eq!(get_challenge_result, Some(challenge_to_find));
+            
+        }
     }
 }
