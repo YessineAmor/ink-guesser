@@ -155,6 +155,7 @@ mod guesserv3 {
                 test::default_accounts::<DefaultEnvTypes>().expect("Cannot get accounts");
             set_sender(accounts.alice);
             let challenge_hash: Hash = ink_env::Hash::from([0x99; 32]);
+            let incorrect_challenge_hash: Hash = ink_env::Hash::from([0x01; 32]);
             let mut contract = Guesserv3::new();
 
             let new_challenge_result = contract.new_challenge(challenge_hash, 100, challenge_hash);
@@ -173,7 +174,7 @@ mod guesserv3 {
             };
             // Assert that challenge creation has been successful.
             assert_eq!(get_challenge_result, Some(challenge_to_find));
-            
+            assert_eq!(contract.get_challenge(incorrect_challenge_hash), None);
         }
     }
 }
